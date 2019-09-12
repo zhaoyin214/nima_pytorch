@@ -246,7 +246,7 @@ if __name__ == "__main__":
     }
     nima_net = NIMA(baseline_model_dict=vgg16_net_dict)
     if os.path.isfile(MODEL_LOAD_PATH):
-        faceboxes_net.load_state_dict(torch.load(MODEL_LOAD_PATH))
+        nima_net.load_state_dict(torch.load(MODEL_LOAD_PATH))
     print(nima_net)
 
     # optimizer
