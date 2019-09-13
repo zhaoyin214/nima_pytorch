@@ -18,7 +18,7 @@ import sys
 from tqdm import tqdm
 
 from configs import TRAINING_PHASE_LIST, TRAIN, VALIDATION, \
-    MODEL_SAVE_PATH
+    MODEL_SAVE_PATH, TORCH_FLOAT
 
 #%%
 def train(model, dataloaders, criterion, optimizer, scheduler, device,
@@ -51,7 +51,7 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
     for epoch in range(1, num_epochs + 1):
 
         print("-" * 20)
-        print("Epoch {}/{}".format(epoch + 1, num_epochs))
+        print("Epoch {}/{}".format(epoch, num_epochs))
         print("-" * 20)
 
         # each epoch has a training and validation phase
@@ -75,8 +75,8 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
 
                 # instances
                 batch_images, batch_ground_truths = batch_samples
-                batch_images = batch_images.to(device)
-                batch_ground_truths = batch_ground_truths.to(device)
+                batch_images = batch_images.type(TORCH_FLOAT).to(device)
+                batch_ground_truths = batch_ground_truths.type(TORCH_FLOAT).to(device)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -84,7 +84,7 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
                 # forward
                 with torch.set_grad_enabled(mode=(phase == TRAIN)):
 
-                    batch_predicitons = model(batch_images)
+                    batch_predicitons = model(batch_images).type(TORCH_FLOAT)
                     loss = criterion(batch_predicitons, batch_ground_truths)
 
                     # backward + optimize, only if in training phase
@@ -174,6 +174,7 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
 if __name__ == "__main__":
 
     import os
+    import pickle
     from torch.utils.data import DataLoader
     from torchvision import transforms
 
@@ -186,7 +187,7 @@ if __name__ == "__main__":
         MODEL_LOAD_PATH, HISTORY_PATH, HISTORY_PLOT_PATH
 
     from dataset import AVADataset, NIMADataset
-    from utils import plot_batch
+    from utils import plot_batch, plot_history
     from nima import NIMA, EMDLoss, vgg16_bn
 
     # -- dataset --

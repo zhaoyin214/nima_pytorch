@@ -10,9 +10,6 @@
 @desc    :
 """
 
-import sys
-sys.path.append("e:/src/jupyter/nima_pytorch")
-
 #%%
 import torch
 import torch.nn as nn
@@ -41,7 +38,7 @@ class NIMA(nn.Module):
             )
         else:
             raise AssertionError(
-                "ERROR: {} is not available!".format(baseline_model["arch"])
+                "ERROR: {} is not available!".format(baseline_model_dict["arch"])
             )
 
     def forward(self, x):
@@ -54,7 +51,7 @@ class NIMA(nn.Module):
             softmax (2-dim tensor)
         """
         x = self._baseline_model(x)
-        x = torch.softmax(tensor=x, dim=1)
+        x = torch.softmax(input=x, dim=1)
 
         return x
 

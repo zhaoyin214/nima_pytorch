@@ -1,8 +1,12 @@
+import torch
+
 TORCH_BATCH_DIM = 0
 TORCH_CHANNEL_DIM = 1
 TORCH_HEIGHT_DIM = 2
 TORCH_WIDTH_DIM = 3
 TORCH_BIN_DIM = 1
+
+TORCH_FLOAT = torch.float32
 
 TRAIN = "train"
 VALIDATION = "val"

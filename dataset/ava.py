@@ -66,7 +66,12 @@ class AVADataset(object):
         """
         image_id = str(self._labels.loc[index, self._label_key_image_id])
         image_filepath = os.path.join(self._image_root, image_id + ".jpg")
-        image = imread(fname=image_filepath)
+        try:
+            image = imread(fname=image_filepath)
+        except OSError as err:
+            print("OS error: {0}, file: {1}".format(err, image_filepath))
+        except:
+            print("Unexcepted error, file {0}".format(image_filepath))
 
         ratings = self._labels.loc[index, self._label_key_ratings]
 
