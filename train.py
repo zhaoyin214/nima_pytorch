@@ -151,9 +151,9 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
                     best_loss = epoch_loss
                     best_model_weights = copy.deepcopy(model.state_dict())
                     model_path = MODEL_SAVE_PATH.format(
-                        history["epoch"][epoch],
-                        history["train_loss"][epoch],
-                        history["val_loss"][epoch]
+                        history["epoch"][-1],
+                        history["train_loss"][-1],
+                        history["val_loss"][-1]
                     )
                     torch.save(model.state_dict(), model_path)
                     print(model_path)

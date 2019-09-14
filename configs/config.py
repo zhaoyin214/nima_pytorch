@@ -18,8 +18,8 @@ AVA_LABEL_FILEPATH = os.path.join(AVA_DATASET_ROOT, "AVA.txt")
 AVA_ABNORMAL = os.path.join(AVA_DATASET_ROOT, "abnormals.csv")
 AVA_LABEL_CLEANED_FILEPATH = os.path.join(AVA_DATASET_ROOT, "AVA.csv")
 # image size
-TRAIN_RESIZE = 256
-IMAGE_SIZE = 224
+TRAIN_RESIZE = [256, 256]
+IMAGE_SIZE = [224, 224]
 # train, val, test split
 TEST_RATIO = 0.33
 VAL_RATIO = 0.33
@@ -35,7 +35,6 @@ TEST_BATCH_SIZE = 32
 NUM_WORKERS = 4
 
 # -- data generator -- #
-TRAINING_PHASES = ["train", "val"]
 # dataset
 DATASET_CONFIG = {
     "dataset": "AVA",
@@ -62,6 +61,8 @@ MODEL_SAVE_PATH = "./output/best_model-epoch_{}-train_loss_{:.4f}-val_loss_{:.4f
 MODEL_LOAD_PATH = "./data/best_model.pth"
 HISTORY_PATH = "./output/history.pickle"
 HISTORY_PLOT_PATH = "./output/history.png"
+# -- evaluation --
+EVAL_LOSS_PATH = "./output/test_loss.pickle"
 
 # -- optimizer -- #
 LEARNING_RATE = 1e-3

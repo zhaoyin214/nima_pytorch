@@ -68,10 +68,10 @@ class AVADataset(object):
         image_filepath = os.path.join(self._image_root, image_id + ".jpg")
         try:
             image = imread(fname=image_filepath)
-        except OSError as err:
-            print("OS error: {0}, file: {1}".format(err, image_filepath))
-        except:
-            print("Unexcepted error, file {0}".format(image_filepath))
+        except Exception as err:
+            print("Unexcepted error: {0}, file: {1}".format(
+                err, image_filepath
+            ))
 
         ratings = self._labels.loc[index, self._label_key_ratings]
 
@@ -109,7 +109,7 @@ class AVADataset(object):
                       label_cleaned_filepath=None):
         """
         index
-        modes: ["check", "download", "truncated"]
+        modes: ["exist", "download", "exif"]
         """
         abnormals = pd.DataFrame(
             columns=[self._label_key_id, self._label_key_image_id]
@@ -125,8 +125,8 @@ class AVADataset(object):
             print("index: {}, image id: {}".format(index, image_id))
 
             # abnormals
+            # image does not exist
             if not os.path.isfile(image_filepath):
-
                 print("!" * 20)
                 print("abnormal: index: {}, image id: {}".format(index, image_id))
                 print("!" * 20)
@@ -137,6 +137,24 @@ class AVADataset(object):
                 }, ignore_index=True)
                 # remove abnormal samples
                 self._labels.drop(labels=[index], axis="index", inplace=True)
+
+            # imread error
+            else:
+                try:
+                    imread(fname=image_filepath)
+                except Exception as err:
+                    print("!" * 20)
+                    print("abnormal: {} index: {}, image id: {}".format(
+                        err, index, image_id
+                    ))
+                    print("!" * 20)
+                    # record abnormal samples
+                    abnormals = abnormals.append({
+                        self._label_key_id: index,
+                        self._label_key_image_id: image_id
+                    }, ignore_index=True)
+                    # remove abnormal samples
+                    self._labels.drop(labels=[index], axis="index", inplace=True)
 
         abnormals.set_index(keys=self._label_key_id, inplace=True)
         self._labels.reset_index(drop=True, inplace=True)
