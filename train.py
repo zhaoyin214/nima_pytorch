@@ -21,7 +21,9 @@ from configs import TRAINING_PHASE_LIST, TRAIN, VALIDATION, \
     MODEL_SAVE_PATH, TORCH_FLOAT
 
 #%%
-def train(model, dataloaders, criterion, optimizer, scheduler, device,
+def train(model, dataloaders, criterion, optimizer,
+          scheduler=None,
+          device="cpu",
           num_epochs=25,
           early_stopping_patience=None,
           reduce_lr_on_plateau=None):
@@ -32,7 +34,7 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
         phase: len(dataloaders[phase]) for phase in TRAINING_PHASE_LIST
     }
     pbar_write = {
-        phase: dataloader_sizes[phase] // 10 for phase in TRAINING_PHASE_LIST
+        phase: dataloader_sizes[phase] // 100 for phase in TRAINING_PHASE_LIST
     }
 
     if early_stopping_patience is not None:
@@ -59,7 +61,8 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
 
             if phase == TRAIN:
                 model.train()  # set model to training mode
-                scheduler.step()
+                if scheduler is not None:
+                    scheduler.step()
             else:
                 model.eval()  # set model to evaluate mode
 
@@ -84,8 +87,8 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
                 # forward
                 with torch.set_grad_enabled(mode=(phase == TRAIN)):
 
-                    batch_predicitons = model(batch_images).type(TORCH_FLOAT)
-                    loss = criterion(batch_predicitons, batch_ground_truths)
+                    batch_predicitions = model(batch_images).type(TORCH_FLOAT)
+                    loss = criterion(batch_predicitions, batch_ground_truths)
 
                     # backward + optimize, only if in training phase
                     if phase == TRAIN:
@@ -99,6 +102,7 @@ def train(model, dataloaders, criterion, optimizer, scheduler, device,
                 if not (idx_batch % pbar_write[phase]):
                     pbar.write("batch {}, loss: {:.4f}".format(
                         (idx_batch + 1), loss.item()))
+                    print(batch_predicitions)
 
             epoch_loss = running_loss / dataloader_sizes[phase]
             pbar.close()
@@ -177,18 +181,22 @@ if __name__ == "__main__":
     import pickle
     from torch.utils.data import DataLoader
     from torchvision import transforms
-
+    import warnings
     from configs import DEVICE, NUM_EPOCHS, \
-        TRAIN_RESIZE, IMAGE_SIZE, \
+        TRAIN_RESIZE, IMAGE_SIZE, IMAGE_MEAN, IMAGE_STD, \
         DATASET_CONFIG, DATA_LOADER_CONFIG, \
-        LEARNING_RATE, WEIGHT_DECAY, BETAS, WEIGHT_DECAY, \
-        EARLY_STOPPING_PATIENCE,  REDUCE_LR_ON_PLATEAU, \
+        BASELINE_LEARNING_RATE, LEARNING_RATE, \
+        WEIGHT_DECAY, BETAS, WEIGHT_DECAY, MOMENTUM, \
+        EARLY_STOPPING_PATIENCE, REDUCE_LR_ON_PLATEAU, \
         LR_SCHEDULE_STEP_SIZE, LR_SCHEDULE_GAMMA, \
-        MODEL_LOAD_PATH, HISTORY_PATH, HISTORY_PLOT_PATH
+        MODEL_VGG16_BN_PATH, MODEL_LOAD_PATH, \
+        HISTORY_PATH, HISTORY_PLOT_PATH
 
     from dataset import AVADataset, NIMADataset
     from utils import plot_batch, plot_history
     from nima import NIMA, EMDLoss, vgg16_bn
+
+    warnings.filterwarnings("ignore")
 
     # -- dataset --
     # ava dataset
@@ -206,12 +214,12 @@ if __name__ == "__main__":
             transforms.RandomCrop(IMAGE_SIZE),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(1, 1, 1))
+            transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD)
         ]),
         VALIDATION: transforms.Compose(transforms=[
             transforms.Resize(IMAGE_SIZE),
             transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(1, 1, 1))
+            transforms.Normalize(mean=IMAGE_MEAN, std=IMAGE_STD)
         ])
     }
 
@@ -238,9 +246,7 @@ if __name__ == "__main__":
     plot_batch(batch_images, batch_ground_truths)
 
     # -- nima network --
-    vgg16_net = vgg16_bn(
-        pretrained_path="e:/src/jupyter/pytorch/models/vgg16_bn-6c64b313.pth"
-    )
+    vgg16_net = vgg16_bn(pretrained_path=MODEL_VGG16_BN_PATH)
     vgg16_net_dict = {
         "arch": "vgg",
         "model": vgg16_net,
@@ -251,10 +257,23 @@ if __name__ == "__main__":
     print(nima_net)
 
     # optimizer
-    optimizer = torch.optim.Adam(params=nima_net.parameters(),
-                                 lr=LEARNING_RATE,
-                                 betas=BETAS,
-                                 weight_decay=WEIGHT_DECAY)
+    # optimizer = torch.optim.Adam(params=nima_net.parameters(),
+    #                              lr=LEARNING_RATE,
+    #                              betas=BETAS,
+    #                              weight_decay=WEIGHT_DECAY)
+    # optimizer = torch.optim.SGD(params=nima_net.parameters(),
+    #                             lr=LEARNING_RATE,
+    #                             momentum=MOMENTUM,
+    #                             weight_decay=WEIGHT_DECAY)
+    params = [
+        {"params": nima_net._baseline_model.parameters(),
+         "lr": BASELINE_LEARNING_RATE},
+        {"params": nima_net._rating_distribution.parameters(),
+         "lr": LEARNING_RATE}
+    ]
+    optimizer = torch.optim.SGD(params=params, momentum=MOMENTUM)
+    print(optimizer)
+
     # scheduler
     exp_lr_scheduler = torch.optim.lr_scheduler.StepLR(
         optimizer=optimizer, step_size=LR_SCHEDULE_STEP_SIZE,
@@ -268,7 +287,8 @@ if __name__ == "__main__":
     nima_net, history = train(
         model=nima_net, dataloaders=nima_dataloaders,
         criterion=criterion, optimizer=optimizer,
-        scheduler=exp_lr_scheduler, device=DEVICE,
+        scheduler=exp_lr_scheduler,
+        device=DEVICE,
         num_epochs=NUM_EPOCHS,
         early_stopping_patience=EARLY_STOPPING_PATIENCE,
         reduce_lr_on_plateau=REDUCE_LR_ON_PLATEAU

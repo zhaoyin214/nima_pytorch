@@ -17,6 +17,7 @@ import math
 import numpy as np
 import torch
 from torchvision.utils import make_grid
+from configs import IMAGE_MEAN, IMAGE_STD
 
 #%%
 def plot_sample(sample, idx_fig=1, figsize=(6, 8)):
@@ -63,8 +64,8 @@ def plot_batch(batch_images, batch_ground_truths, figsize=(8, 6)):
     nrow = 8
 
     image = make_grid(batch_images, nrow=nrow).numpy().transpose(1, 2, 0)
-    mean = np.array([0.5, 0.5, 0.5])
-    std = np.array([1, 1, 1])
+    mean = np.array(IMAGE_MEAN)
+    std = np.array(IMAGE_STD)
     image = std * image + mean
 
     fig = plt.figure(figsize=figsize)
@@ -82,6 +83,35 @@ def plot_batch(batch_images, batch_ground_truths, figsize=(8, 6)):
             ax = fig.add_subplot(ncol, nrow, idx + 1)
             ax.bar(list(range(1, 11)), ground_truths[idx])
             ax.set_yticks([])
+
+    plt.show()
+
+
+def plot_prediction(image, prediction, ground_truth, figsize=(8, 6)):
+    """
+    """
+    fig = plt.figure(figsize=figsize)
+    fig.clf()
+
+    # image
+    ax = fig.add_subplot(2, 1, 1, frameon=False)
+    if isinstance(image, torch.Tensor):
+        image = image.numpy().transpose(1, 2, 0)
+    ax.imshow(image)
+    ax.axis("off")
+    # ground truth ratings
+    ax = fig.add_subplot(2, 1, 2, frameon=True)
+    x = np.asarray(list(range(1, prediction.shape[0] + 1)))
+
+    if ground_truth is not None:
+        ax.bar(x=x - 0.2, height=prediction, width=0.4, label="prediction")
+        ground_truth = ground_truth / np.sum(ground_truth)
+        ax.bar(x=x + 0.2, height=ground_truth, width=0.4, label="ground truth")
+    else:
+        ax.bar(x=x, height=prediction, width=0.8, label="prediction")
+
+    ax.set_xticks(x)
+    ax.legend()
 
     plt.show()
 

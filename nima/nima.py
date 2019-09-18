@@ -26,15 +26,16 @@ class NIMA(nn.Module):
         - baseline cnn: vgg16, inception-v2, mobile-net
     """
 
-    def __init__(self, baseline_model_dict, output_features=10):
+    def __init__(self, baseline_model_dict, out_features=10):
         super(NIMA, self).__init__()
 
         if baseline_model_dict["arch"] == "vgg":
-            in_features = \
-                baseline_model_dict["model"].classifier[6].in_features
             self._baseline_model = baseline_model_dict["model"]
-            self._baseline_model.classifier[6] = nn.Linear(
-                in_features=in_features, out_features=output_features
+            in_features = \
+                self._baseline_model.classifier[-1].in_features
+            del(self._baseline_model.classifier[-1])
+            self._rating_distribution = nn.Linear(
+                in_features=in_features, out_features=out_features
             )
         else:
             raise AssertionError(
@@ -51,6 +52,7 @@ class NIMA(nn.Module):
             softmax (2-dim tensor)
         """
         x = self._baseline_model(x)
+        x = self._rating_distribution(x)
         x = torch.softmax(input=x, dim=1)
 
         return x

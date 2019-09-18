@@ -41,10 +41,11 @@ class EMDLoss(nn.Module):
         gt_cdf = self._cdf(ground_truths)
 
         loss = torch.pow(torch.mean(
-            torch.pow(torch.abs(gt_cdf - pred_cdf), exponent=self._exponent)
+            torch.pow(torch.abs(gt_cdf - pred_cdf), exponent=self._exponent),
+            dim=TORCH_BIN_DIM
         ), exponent= 1 / self._exponent)
 
-        return loss
+        return torch.mean(loss)
 
     def _cdf(self, input):
         """
@@ -57,8 +58,8 @@ class EMDLoss(nn.Module):
 if __name__ == "__main__":
 
     size = (5, 10)
-    preds = torch.randn(*size)
-    gts = torch.ones(*size)
+    preds = torch.softmax(torch.randn(*size), dim=TORCH_BIN_DIM)
+    gts = torch.softmax(torch.ones(*size), dim=TORCH_BIN_DIM)
 
     criterion = EMDLoss()
 

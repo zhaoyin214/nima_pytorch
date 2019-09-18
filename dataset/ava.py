@@ -12,6 +12,7 @@
 
 #%%
 import pandas as pd
+import numpy as np
 import os
 from skimage.io import imread, imsave
 from PIL import ImageFile
@@ -33,6 +34,9 @@ class AVADataset(object):
     _label_key_ratings = ["rating_" + str(score) for score in range(1, 11)]
     _label_key_tags = ["tag_1", "tag_2"]
     _label_key_challenge_id = "challenge_id"
+    _label_key_mean = "mean"
+    _label_key_std = "std"
+    _scores = np.linspace(start=1, stop=10, num=10, endpoint=True)
     _image_large_side = 640
 
     def __init__(self, image_root=None, label_filepath=None):
@@ -69,8 +73,8 @@ class AVADataset(object):
         try:
             image = imread(fname=image_filepath)
         except Exception as err:
-            print("Unexcepted error: {0}, file: {1}".format(
-                err, image_filepath
+            print("Unexcepted error: {}, image id: {}, file: {}".format(
+                err, image_id, image_filepath
             ))
 
         ratings = self._labels.loc[index, self._label_key_ratings]
@@ -206,6 +210,25 @@ class AVADataset(object):
 
         return abnormals
 
+    def stat(self, label_filepath=None):
+        """
+        statistics, mean and std
+        """
+        for idx, label in self._labels.iterrows():
+
+            distribution = self._scores * label[self._label_key_ratings] / \
+                np.sum(label[self._label_key_ratings])
+
+            self._labels.loc[idx, self._label_key_mean] = np.mean(distribution)
+            self._labels.loc[idx, self._label_key_std] = np.std(distribution)
+        # plot histogram
+        self._labels[[self._label_key_mean, self._label_key_std]].plot.hist(
+            bins=50, subplots=True
+        )
+
+        if label_filepath is not None:
+            self._labels.to_csv(label_filepath)
+
     @property
     def labels(self):
         return self._labels
@@ -255,6 +278,18 @@ if __name__ == "__main__":
     #     label_cleaned_filepath=AVA_LABEL_CLEANED_FILEPATH
     # )
 
+    # # statistics
+    # ava_dataset.stat()
+    # ava_dataset.labels.to_csv(AVA_LABEL_CLEANED_FILEPATH)
+
+    # # training, validation and test sets
+    # labels_train, labels_val, labels_test = train_val_test_split(
+    #     dataset=ava_dataset.labels, val_ratio=VAL_RATIO, test_ratio=TEST_RATIO
+    # )
+    # labels_train.to_csv(AVA_TRAIN_LABEL_FILEPATH)
+    # labels_val.to_csv(AVA_VAL_LABEL_FILEPATH)
+    # labels_test.to_csv(AVA_TEST_LABEL_FILEPATH)
+
     ava_dataset.labels = AVA_LABEL_CLEANED_FILEPATH
     ava_dataset.image_root = AVA_IMAGE_ROOT
 
@@ -273,13 +308,5 @@ if __name__ == "__main__":
 
         if idx == 3:
             break
-
-    # training, validation and test sets
-    labels_train, labels_val, labels_test = train_val_test_split(
-        dataset=ava_dataset.labels, val_ratio=VAL_RATIO, test_ratio=TEST_RATIO
-    )
-    labels_train.to_csv(AVA_TRAIN_LABEL_FILEPATH)
-    labels_val.to_csv(AVA_VAL_LABEL_FILEPATH)
-    labels_test.to_csv(AVA_TEST_LABEL_FILEPATH)
 
 #%%

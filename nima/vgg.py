@@ -118,6 +118,7 @@ def _vgg(arch, cfg, is_batch_norm, pretrained_path=None, **kwargs):
 
     if is_pretrained:
         model.load_state_dict(torch.load(pretrained_path))
+        print("pretrained model is loaded...")
 
     return model
 
